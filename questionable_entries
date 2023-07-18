@@ -1,0 +1,34 @@
+Index: 53
+{'addressLine': '4355 bergamo dr',
+ 'countryRegion': 'us',
+ 'locality': 'encino',
+ 'adminDistrict2': 'los angeles',
+ 'adminDistrict': 'ca',
+ 'postalCode': '91436'}
+ 
+{'adminDistrict2': 'los angeles county',
+ 'formattedAddress': '4355 bergamo dr, los angeles, ca 91436',
+ 'countryRegion': 'united states',
+ 'postalCode': '91436',
+ 'locality': 'los angeles',
+ 'adminDistrict': 'ca',
+ 'addressLine': '4355 bergamo dr'}
+'High'
+
+Index: 209
+{'addressLine': '3703 wrightwood dr',
+ 'countryRegion': 'us',
+ 'locality': 'studio city',
+ 'adminDistrict2': 'los angeles',
+ 'adminDistrict': 'ca',
+ 'postalCode': '91604'}
+ 
+{'adminDistrict2': 'los angeles county',
+ 'formattedAddress': '3703 wrightwood dr, los angeles, ca 91604',
+ 'countryRegion': 'united states',
+ 'postalCode': '91604',
+ 'locality': 'los angeles',
+ 'adminDistrict': 'ca',
+ 'addressLine': '3703 wrightwood dr'}
+ 
+'High'
