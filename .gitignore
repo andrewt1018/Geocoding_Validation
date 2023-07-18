@@ -1,3 +1,11 @@
+# ignore all jupyter notebooks
 *.ipynb
+
+# ignore all object files (pickle)
 *.pkl
+
+# ignore all text files used for debugging
 *.txt
+
+# ignore all csv files that contains data
+*.csv
