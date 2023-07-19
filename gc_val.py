@@ -1,15 +1,19 @@
+# Special imports
 import geopy.distance
-
-import json
 import Levenshtein as lv
+
+# Common imports
+import json
 import pandas as pd
 import pickle
 import re
 
+# System imports
 import requests
 import sys
 import traceback
 
+# Aesthetic imports
 from IPython.display import display
 from tqdm import tqdm_notebook
 
@@ -21,6 +25,10 @@ class GC_Val:
     - Classifies each address response call as either correct or incorrect
     """
     def __init__(self, data, neighborhoods=None):
+        """
+        Takes in a file name 'data' and converts it into a Pandas DataFrame
+        Takes in a pickle file 'neighborhoods', which contains each major city's neighborhoods, and stores it in a Pandas DataFrame
+        """
         self.df = pd.read_csv(data)
         if neighborhoods:
             with open(neighborhoods, "rb") as f:
@@ -30,9 +38,25 @@ class GC_Val:
             with open("neighborhoods.csv", "rb") as f:
                 self.neighborhoods = pickle.load(f)
                 f.close()
+
+        # Regex expression for checking address lines
         self.building_check = r"""^[0-9, -]+\s+.*$"""
 
     def main(self, index=None, debug=False, threshold=0.8, max_dist=2, start=0, end=500, complete=False):
+        """
+        Main method for classifying each entry as either correct or incorrect
+
+        :param index: specific index, default none
+        :param debug: a boolean to turn on/off debugging print statements
+        :param threshold: a constant that marks the boundaries of similarity when comparing address lines
+        :param max_dist: a constant that marks the physical boundary when retrieving distance between given and response addresses
+        :param start: specifies an index to start with
+        :param end: specifies an index to end with
+        :param complete: if set to true, then sets start=0 and end=length-of-dataset
+        :returns: list of indexes of false responses, list of indexes with NULL/faulty entries
+        :rtype: type
+        """
+        
         if index:
             conf = self.get_confidence(index)
             given = json.loads(str(self.df.iloc[index].requested_address))
@@ -43,7 +67,6 @@ class GC_Val:
                 print("Index:", index)
                 display(given)
                 display(resp)
-                # self.view_entry(index)
             return self.compare_addresses(given, resp, debug=debug, threshold=threshold, max_dist=max_dist, confidence=conf)
             
         faulty = []
@@ -93,10 +116,20 @@ class GC_Val:
             return False
         return True
 
-        def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=2, confidence="Medium") -> bool:
-        # Go through an address line check
-        # Go through a state check
-        # Go through a geocode locality check
+        def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=2, confidence="High") -> bool:
+        """        
+        Go through an address line check
+        Go through a state check
+        Go through a geocode locality check
+
+        :param add1: given address (type: dict)
+        :param add2: response address (type: dict)
+        :param debug: a boolean to turn on/off debugging print statements
+        :param threshold: a constant that marks the boundaries of similarity when comparing address lines
+        :param max_dist: a constant that marks the physical boundary when retrieving distance between given and response addresses
+        :param confidence: the confidence of a given entry, defaults to 'High'. Can be 'High', 'Medium', or 'Low'
+        """
+        
         try:
             postal_match = self.match_postal(add1, add2)
 
