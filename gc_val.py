@@ -35,14 +35,14 @@ class GC_Val:
                 self.neighborhoods = pickle.load(f)
                 f.close()
         else:
-            with open("neighborhoods.csv", "rb") as f:
+            with open(r"C:\Users\andrew.tan\Jupyter Notebooks\Geocoding_Validation\neighborhoods.csv", "rb") as f:
                 self.neighborhoods = pickle.load(f)
                 f.close()
 
         # Regex expression for checking address lines
         self.building_check = r"""^[0-9, -]+\s+.*$"""
 
-    def main(self, index=None, debug=False, threshold=0.8, max_dist=2, start=0, end=500, complete=False):
+    def main(self, index=None, debug=False, threshold=0.8, max_dist=15, start=0, end=500, complete=False):
         """
         Main method for classifying each entry as either correct or incorrect
 
@@ -116,7 +116,7 @@ class GC_Val:
             return False
         return True
 
-        def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=2, confidence="High") -> bool:
+    def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=2, confidence="High") -> bool:
         """        
         Go through an address line check
         Go through a state check
@@ -129,7 +129,7 @@ class GC_Val:
         :param max_dist: a constant that marks the physical boundary when retrieving distance between given and response addresses
         :param confidence: the confidence of a given entry, defaults to 'High'. Can be 'High', 'Medium', or 'Low'
         """
-        
+
         try:
             postal_match = self.match_postal(add1, add2)
 
@@ -223,8 +223,7 @@ class GC_Val:
         given = json.loads(str(self.df.iloc[ind].requested_address))
         response = json.loads(str(self.df.iloc[ind].response))
         resp, confidence = self.get_info(response)   
-        self.format_address(given)
-        self.format_address(resp)
+        self.format_entry(given, resp)
         return (given, resp)
 
     def get_calculation_method(self, ind: int) -> str:
@@ -295,9 +294,7 @@ class GC_Val:
         
     def get_ratio(self, ind: int) -> float:
         add1, add2 = self.get_addresses(ind)
-        self.format_address(add1)
-        self.format_address(add2)
-        return lv.ratio(add1, add2)
+        return lv.ratio(add1['addressLine'], add2['addressLine'])
 
     def get_resources(self, response: dict) -> dict:
         return dict(dict(response['resourceSets'][0])['resources'][0])
@@ -327,8 +324,6 @@ class GC_Val:
         if conf == "High":
             threshold -= 0.1
         add1, add2 = self.get_addresses(ind)
-        self.format_address(add1)
-        self.format_address(add2)
         if add2['addressLine'] in add1['addressLine']:
             return True
         elif lv.ratio(add1['addressLine'], add2['addressLine']) <= threshold:
@@ -338,8 +333,6 @@ class GC_Val:
     def same_admin_district(self, ind: int) -> bool:
         try:
             add1, add2 = self.get_addresses(ind)
-            self.format_address(add1)
-            self.format_address(add2)
             if add1['adminDistrict'] == add2['adminDistrict']:
                 return True
             return False
@@ -348,8 +341,8 @@ class GC_Val:
 
     def sformat_addr(self, add: str) -> str: 
         target = ['road', 'drive', 'street', r'\.', 'saint', 'lane', 'beach', 'avenue', r'east\s?', r"west\s?", r'north\s?', r'south\s?', r'northeast\s?', r'northwest\s?',\
-                  r'southeast\s?', r'southwest\s?', 'highway', 'boulevard']
-        repl = ['rd', 'dr', 'st', '', 'st', 'ln', 'bc', 'ave', 'E ', 'W ', 'N ', 'S ', 'NE ', 'NW ', 'SE ', 'SW ', 'hwy', 'blvd']
+                  r'southeast\s?', r'southwest\s?', 'highway', 'boulevard', 'parkway']
+        repl = ['rd', 'dr', 'st', '', 'st', 'ln', 'bc', 'ave', 'E ', 'W ', 'N ', 'S ', 'NE ', 'NW ', 'SE ', 'SW ', 'hwy', 'blvd', 'pkwy']
         for t, r in zip(target, repl):
             add = re.sub(t, r, add)
         return add
