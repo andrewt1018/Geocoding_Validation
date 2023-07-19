@@ -3,6 +3,3 @@
 
 # ignore all text files used for debugging
 *.txt
-
-# ignore all csv files that contains data
-*.csv
