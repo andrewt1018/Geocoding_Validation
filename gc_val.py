@@ -40,7 +40,7 @@ class GC_Val:
                 f.close()
 
         # Regex expression for checking address lines
-        self.building_check = r"""^[0-9, -]+\s+.*$"""
+        self.building_check = r"""^[0-9, -]+\S*\s+.*$"""
 
     def main(self, index=None, debug=False, threshold=0.8, max_dist=15, start=0, end=500, complete=False):
         """
@@ -66,7 +66,9 @@ class GC_Val:
                 print("Index:", index)
                 display(given)
                 display(resp)
-            return self.compare_addresses(given, resp, debug=debug, threshold=threshold, max_dist=max_dist, confidence=conf)
+            value, marker = self.compare_addresses(given, resp, debug=debug, threshold=threshold, max_dist=max_dist, confidence=conf)
+            if debug: print("Failure code:", marker)
+            return value
             
         faulty = []
         no_resp = []
@@ -89,12 +91,14 @@ class GC_Val:
             self.format_entry(given, resp)
             try:
                 conf = self.get_confidence(i)
-                if not (value:= self.compare_addresses(given, resp, debug=debug, threshold=threshold, max_dist=max_dist, confidence=conf)): 
-                    faulty.append(i)
+                value, marker = self.compare_addresses(given, resp, debug=debug, threshold=threshold, max_dist=max_dist, confidence=conf)
+                if not value: 
+                    faulty.append((i, marker))
                     if debug:
                         print("Index:", i)
                         display(given)
                         display(resp)
+                        print("Failure code:", marker)
             except ValueError as e:
                 print("Index: {}. ValueError: {}".format(i, e))
                 
@@ -115,12 +119,13 @@ class GC_Val:
             return False
         return True
 
-    def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=15, confidence="High") -> bool:
+    def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=15, confidence="High") -> tuple:
         """        
         Go through an address line check
         Go through a state check
         Go through a geocode locality check
 
+        :returns: a boolean and an int. (addressline: 0, bldg#: 1, ratio: 2, adminDistrict: 3, geocoord: 4, KeyError: 5)
         :param add1: given address (type: dict)
         :param add2: response address (type: dict)
         :param debug: a boolean to turn on/off debugging print statements
@@ -135,30 +140,32 @@ class GC_Val:
             # Address Line check
             if not ('addressLine' in add2.keys() and 'addressLine' in add1.keys()):
                 if debug: print("Missing address line")
-                return False
+                return (False, 0)
             
             if len(re.findall(self.building_check, add1['addressLine'])) == 0:
                 if debug:
                     print("Given address line missing building number")
                     print("Address:", add1['addressLine'])
-                return False
+                return (False, 1)
 
             if len(re.findall(self.building_check, add2['addressLine'])) == 0:
                 if debug:
                     print("Response address line missing building number")
                     print("Address:", add2['addressLine'])
-                return False
+                return (False, 1)
             
 
             if add1['adminDistrict'] == "":
                 if postal_match:
-                    return self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+                    ret = self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+                    if ret: return (ret, -1)
+                    else: return (ret, 2)
 
             # State check
             if add1['adminDistrict'] != add2['adminDistrict']:
                 if debug: print("Different adminDistrict")
-                return False
-
+                return (False, 3)
+            
             # Geocoordinate check (only if their postalCodes do not match)
             same_city = False
             try:
@@ -173,7 +180,9 @@ class GC_Val:
                 else:
                     distance = self.get_distance(add1, add2, debug=debug)
                     if distance == -1:
-                        return self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+                        ret = self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+                        if ret: return (ret, -1)
+                        else: return (ret, 2)
                     if debug:
                         print("Checking distances between {}, {} and {}, {}".format(add1['locality'], add1['adminDistrict'], add2['locality'], add2['adminDistrict']))
                         print("Distance:", distance, "km")
@@ -186,16 +195,19 @@ class GC_Val:
                                 pass
                         except KeyError as e:
                             if debug: print("KeyError when accessing neighborhoods:", e)
-                            return False
+                            return (False, 4)
                     else:
                         if debug: print("Distance is less than threshold")
             else:
                 if confidence == 'High': threshold = threshold - 0.15
     
-            return self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+            ret = self.check_address_line(add1, add2, threshold=threshold, confidence=confidence, debug=debug)
+            if ret: return (ret, -1)
+            else: return (ret, 2)
+
         except KeyError as e:
             print("Returning false because of missing key:", e)
-            return False
+            return (False, 5)
 
     def format_address(self, add: dict):
         for key in add:
@@ -249,9 +261,10 @@ class GC_Val:
         
         resp = None
         counter = 0
-        while resp == None and counter <= 10:
+        while counter <= 10:
             try:
                 resp = requests.get(prompt).json()
+                if counter == 10: display(resp)
                 if 'UpHierarchy' not in resp['resourceSets'][0]['resources'][0]['matchCodes']:
                     return resp['resourceSets'][0]['resources'][0]['point']['coordinates']
                 else:
@@ -262,6 +275,7 @@ class GC_Val:
             except IndexError as e:
                 print("Index error")
                 print("Prompt:", prompt)
+                counter += 1
             except:
                 traceback.print_exc()
                 print("Retrying...")
