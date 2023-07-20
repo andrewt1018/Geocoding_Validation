@@ -244,7 +244,7 @@ class GC_Val:
                 continue
             if addr[key] != None:
                 prompt += f"&{key}={addr[key]}"
-        prompt += "&key=Ak4BABucyHcU1YZx6T6ngVXB2ghTI8mEuAL8APeB7OQdXh2S2pWpKfPrCE0DUD30"
+        prompt += "&key=Ao5VXz_UhZ6NjzIF_L57R1wetZ-1YY2h_eKpLmgS-PxjHkJ_Vw89-uYqTbSDjdHp"
         prompt = re.sub("#", "%23", prompt)
         if debug: print(f"Prompt: {prompt}")
         
