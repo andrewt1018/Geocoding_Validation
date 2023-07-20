@@ -1,2 +1,5 @@
 # ignore all text files used for debugging
 *.txt
+
+# ignore all .pyc files
+*.pyc

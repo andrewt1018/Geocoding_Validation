@@ -56,7 +56,8 @@ class GC_Val:
         :returns: list of indexes of false responses, list of indexes with NULL/faulty entries
         :rtype: type
         """
-        if index is not None:
+        
+        if index:
             conf = self.get_confidence(index)
             given = json.loads(str(self.df.iloc[index].requested_address))
             response = json.loads(str(self.df.iloc[index].response))
@@ -115,7 +116,7 @@ class GC_Val:
             return False
         return True
 
-    def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=15, confidence="High") -> bool:
+    def compare_addresses(self, add1: dict, add2: dict, debug=False, threshold=0.8, max_dist=2, confidence="High") -> bool:
         """        
         Go through an address line check
         Go through a state check
@@ -233,7 +234,7 @@ class GC_Val:
 
     def get_confidence(self, ind: int) -> str:
         response = json.loads(str(self.df.iloc[ind].response))
-        confidence = self.get_resources(response)['confidence']
+        address, confidence = self.get_info(response)
         return confidence
 
     def get_coord(self, addr: dict, debug=False):
@@ -252,26 +253,23 @@ class GC_Val:
         while resp == None and counter <= 10:
             try:
                 resp = requests.get(prompt).json()
-                if 'UpHierarchy' not in resp['resourceSets'][0]['resources'][0]['matchCodes']:
-                    return resp['resourceSets'][0]['resources'][0]['point']['coordinates']
-                else:
-                    return -1       
             except KeyboardInterrupt:
                 print("KeyboardInterrupt. Killing program...")
                 sys.exit()
-            except IndexError as e:
-                print("Index error")
-                print("Prompt:", prompt)
             except:
                 traceback.print_exc()
                 print("Retrying...")
                 counter += 1
                 continue    
-        print("Outside of loop")
-        print("Prompt:", prompt)
-        print("Returning -1")
-        return -1     
-        
+        try:
+            if 'UpHierarchy' not in resp['resourceSets'][0]['resources'][0]['matchCodes']:
+                return resp['resourceSets'][0]['resources'][0]['point']['coordinates']
+            else:
+                return -1       
+        except IndexError as e:
+            print("Index error")
+            print("Prompt:", prompt)
+            sys.exit()
        
     def get_distance(self, add1: dict, add2: dict, debug=False) -> float:
         city1_coord = self.get_coord(add1, debug=debug)
